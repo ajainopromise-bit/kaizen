@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KAIZEN – Become 1% Better Every Day</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#e6f2fc;--card:#fff;--ink:#14233a;--mute:#66768c;--acc:#1fa357;--acc2:#e2f5ea;--line:#d6e5f3;--sh:0 6px 18px rgba(30,70,120,.09);--bad:#d6453d;--onacc:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1a2b;--card:#15263d;--ink:#eaf1fa;--mute:#93a3b8;--acc:#3ccf7a;--acc2:#183a2d;--line:#243b57;--sh:0 6px 18px rgba(0,0,0,.35);--bad:#ff7a70;--onacc:#06210f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1a2b;--card:#15263d;--ink:#eaf1fa;--mute:#93a3b8;--acc:#3ccf7a;--acc2:#183a2d;--line:#243b57;--sh:0 6px 18px rgba(0,0,0,.35);--bad:#ff7a70;--onacc:#06210f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Nunito',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 110px}
+header{display:flex;align-items:center;gap:12px;margin:4px 0 20px}
+.logo{width:44px;height:44px;border-radius:14px;background:var(--acc);color:var(--onacc);display:grid;place-items:center;font-size:24px}
+header h1{font-size:22px;letter-spacing:3px;margin:0;font-weight:800}
+header p{margin:0;font-size:13px;color:var(--mute)}
+.card{background:var(--card);border-radius:22px;box-shadow:var(--sh);padding:18px;margin-bottom:14px}
+h2{font-size:21px;margin:0 0 2px;font-weight:800}
+h3{font-size:16px;margin:18px 4px 10px;font-weight:800}
+.sub{color:var(--mute);font-size:14px;margin:0}
+.prog{display:flex;align-items:center;gap:18px;margin-top:14px}
+.ring{position:relative;width:132px;height:132px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:34px;font-weight:800}
+.ring circle{fill:none;stroke-width:12}
+.ring .tr{stroke:var(--line)}
+.ring .pg{stroke:var(--acc);stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+.msg{font-size:15px;line-height:1.45}
+.msg b{display:block;font-size:17px;margin-bottom:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.stat{background:var(--acc2);border-radius:16px;padding:10px 8px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat small{color:var(--mute);font-size:12px}
+.hc{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:20px;box-shadow:var(--sh);padding:14px;margin-bottom:10px;transition:background .25s}
+.hc.done{background:var(--acc2)}
+.hc.off{opacity:.65}
+.chk{width:42px;height:42px;border-radius:50%;border:3px solid var(--line);flex:none;display:grid;place-items:center;font-size:22px;font-weight:800;color:var(--onacc);transition:all .2s}
+.hc.done .chk{background:var(--acc);border-color:var(--acc)}
+.chk:disabled{cursor:default}
+.hi{flex:1;min-width:0;cursor:pointer}
+.hi b{display:block;font-size:17px;overflow-wrap:anywhere}
+.hi small{color:var(--mute);font-size:13px}
+.ed{width:36px;height:36px;border-radius:50%;font-size:20px;color:var(--mute)}
+.btn{display:block;width:100%;padding:15px;border-radius:16px;background:var(--acc);color:var(--onacc);font-weight:800;font-size:16px;margin-top:10px;box-shadow:var(--sh)}
+.btn.ghost{background:none;color:var(--ink);box-shadow:none;border:2px solid var(--line)}
+.btn.danger{color:var(--bad)}
+.empty{text-align:center;padding:26px 18px}
+.empty .big{font-size:42px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--card);box-shadow:0 -4px 16px rgba(30,70,120,.1)}
+nav button{flex:1;max-width:240px;padding:12px;border-radius:14px;font-weight:700;color:var(--mute)}
+nav button.on{background:var(--acc2);color:var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px;text-align:center}
+.cal span{font-size:12px;color:var(--mute);font-weight:700}
+.day{aspect-ratio:1;border-radius:12px;font-weight:700;font-size:14px;background:var(--bg)}
+.day.full{background:var(--acc);color:var(--onacc)}
+.day.part{background:var(--acc2);box-shadow:inset 0 0 0 2px var(--acc)}
+.day.miss{box-shadow:inset 0 0 0 2px var(--line)}
+.day.now{text-decoration:underline}
+.day.sel{outline:3px solid var(--ink);outline-offset:1px}
+.mh{display:flex;align-items:center;justify-content:space-between}
+.mh button{width:40px;height:40px;border-radius:50%;background:var(--bg);font-size:18px;font-weight:800}
+.mh button:disabled{opacity:.35}
+.dl p{margin:8px 0;font-size:15px}
+.bar{height:9px;border-radius:9px;background:var(--line);overflow:hidden;margin:6px 0 4px}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:9px}
+.hs{margin-bottom:14px}
+.hs div{display:flex;justify-content:space-between;gap:10px;font-weight:700}
+.hs small{color:var(--mute)}
+.ov{position:fixed;inset:0;background:rgba(10,20,35,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:26px 26px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto;animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+label{display:block;font-weight:700;margin:16px 0 8px;font-size:14px}
+input[type=text],input[type=password]{width:100%;padding:14px;border-radius:14px;border:2px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.pre,.chips{display:flex;gap:8px;flex-wrap:wrap}
+.pre button{padding:8px 14px;border-radius:999px;background:var(--bg);font-weight:700;font-size:14px}
+.chips{margin-top:10px}
+.chip{flex:1;min-width:48px;padding:11px 0;border-radius:12px;background:var(--bg);font-weight:700;font-size:13px}
+.chip.on{background:var(--acc);color:var(--onacc)}
+.row{display:flex;align-items:center;justify-content:space-between;margin-top:18px;font-weight:700}
+.sw{width:52px;height:30px;border-radius:30px;background:var(--line);position:relative;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.sw.on{background:var(--acc)}
+.sw.on::after{transform:translateX(22px)}
+.err{color:var(--bad);font-weight:700;font-size:14px;min-height:20px;margin:10px 0 0}
+#toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:30}
+#toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="logo">🌱</div><div><h1>KAIZEN</h1><p>Become 1% better every day</p></div><button id="out" class="ed" hidden onclick="out()" style="margin-left:auto;width:auto;padding:0 10px;font-size:14px;font-weight:700">Sign out</button></header>
+  <main id="app"></main>
+</div>
+<nav><button data-v="today" onclick="go('today')">Today</button><button data-v="history" onclick="go('history')">History</button></nav>
+<div id="modal"></div>
+<div id="toast" role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const firebaseConfig={apiKey:"AIzaSyD_36rvEXsOH5XEXJhqxxOokIjyKq1Mwa8",authDomain:"habit-tracking-6be1c.firebaseapp.com",projectId:"habit-tracking-6be1c",storageBucket:"habit-tracking-6be1c.firebasestorage.app",messagingSenderId:"221005274545",appId:"1:221005274545:web:4134129bee4aa601c53190"};
+let S={habits:[],done:{}},V='today',M=0,E=null,tt,U=null,db,unsub,st,AM='in';
+const loadL=u=>{try{const r=localStorage.getItem('kaizen_'+u);return r?JSON.parse(r):null}catch(e){return null}};
+const save=()=>{if(!U)return;try{localStorage.setItem('kaizen_'+U.uid,JSON.stringify(S))}catch(e){}clearTimeout(st);st=setTimeout(()=>db.doc('users/'+U.uid).set({habits:S.habits,done:S.done,updated:Date.now()}).catch(()=>toast('Could not sync. Your changes are kept on this device.')),400)};
+const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tm=iso=>new Date(iso).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+let SEL=key(new Date());
+const sched=(h,d)=>!h.paused&&h.days.includes(d.getDay())&&key(d)>=h.created;
+const isDone=(h,d)=>!!(S.done[h.id]&&S.done[h.id][key(d)]);
+function freq(h){const n=h.days.length;if(n===7)return'Daily';if(n===5&&!h.days.includes(0)&&!h.days.includes(6))return'Weekdays';if(n===2&&h.days.includes(0)&&h.days.includes(6))return'Weekends';return h.days.map(x=>DN[x]).join(', ')}
+function streaks(h){let run=0,best=0;const t=new Date();for(let d=new Date(h.created+'T00:00:00');key(d)<=key(t);d.setDate(d.getDate()+1)){if(!h.days.includes(d.getDay()))continue;if(isDone(h,d)){run++;best=Math.max(best,run)}else if(key(d)!==key(t))run=0}return{cur:run,best}}
+function rate(hs,days){let a=0,b=0;const t=new Date();for(let i=0;i<days;i++){const d=new Date(t);d.setDate(t.getDate()-i);hs.forEach(h=>{if(sched(h,d)){a++;if(isDone(h,d))b++}})}return a?Math.round(b/a*100):0}
+function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1800)}
+function toggle(id){const k=key(new Date());S.done[id]=S.done[id]||{};if(S.done[id][k])delete S.done[id][k];else S.done[id][k]=new Date().toISOString();save();render()}
+const card=(h,t)=>{const s=streaks(h),d=isDone(h,t),on=sched(h,t);return`<div class="hc ${d?'done':''} ${on?'':'off'}"><button class="chk" ${on?'':'disabled'} onclick="toggle('${h.id}')" aria-label="${d?'Undo':'Mark'} ${esc(h.name)}">${d?'✓':''}</button><div class="hi" onclick="edit('${h.id}')"><b>${esc(h.name)}</b><small>${freq(h)}${h.paused?' · Paused':''} · 🔥 ${s.cur} day${s.cur==1?'':'s'}${d?' · Done '+tm(S.done[h.id][key(t)]):''}</small></div><button class="ed" onclick="edit('${h.id}')" aria-label="Edit ${esc(h.name)}">⋯</button></div>`};
+function todayV(){
+  const t=new Date(),L=S.habits.filter(h=>sched(h,t)),n=L.filter(h=>isDone(h,t)).length,p=L.length?Math.round(n/L.length*100):0,hr=t.getHours();
+  const g=hr<12?'Good morning':hr<18?'Good afternoon':'Good evening',C=2*Math.PI*54;
+  const best=S.habits.reduce((m,h)=>Math.max(m,streaks(h).best),0);
+  const line=!L.length?'Add a habit to get started.':p===100?'All done today. Well played.':p>=50?'Over halfway. Keep going.':n?'Good start. One more.':'Pick one small thing and begin.';
+  const off=S.habits.filter(h=>!sched(h,t));
+  return`<div class="card"><h2>${g}${U&&U.displayName?', '+esc(U.displayName.split(' ')[0]):''} 👋</h2><p class="sub">${t.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})}</p>
+  <div class="prog"><div class="ring"><svg width="132" height="132" viewBox="0 0 132 132"><circle class="tr" cx="66" cy="66" r="54"/><circle class="pg" cx="66" cy="66" r="54" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p/100)}"/></svg><span>${p}%</span></div>
+  <div class="msg"><b>Today’s progress</b>${n} of ${L.length} habit${L.length==1?'':'s'} done.<br>${line}</div></div>
+  <div class="stats"><div class="stat"><b>${S.habits.filter(h=>!h.paused).length}</b><small>Active habits</small></div><div class="stat"><b>${best}</b><small>Longest streak</small></div><div class="stat"><b>${rate(S.habits,7)}%</b><small>Last 7 days</small></div></div></div>
+  <h3>My habits</h3>
+  ${L.length?L.map(h=>card(h,t)).join(''):S.habits.length?'<div class="card empty"><p class="sub">Nothing scheduled for today. Enjoy the rest.</p></div>':'<div class="card empty"><div class="big">🌱</div><h2>Start your first habit</h2><p class="sub">Small steps, repeated daily, add up.</p></div>'}
+  <button class="btn" onclick="edit()">+ Add new habit</button>
+  ${off.length?'<h3>Not scheduled today</h3>'+off.map(h=>card(h,t)).join(''):''}`}
+function histV(){
+  const t=new Date(),b=new Date(t.getFullYear(),t.getMonth()+M,1),dim=new Date(b.getFullYear(),b.getMonth()+1,0).getDate();
+  let c='';for(let i=0;i<b.getDay();i++)c+='<i></i>';
+  for(let d=1;d<=dim;d++){const dt=new Date(b.getFullYear(),b.getMonth(),d),k=key(dt),L=S.habits.filter(h=>sched(h,dt)),n=L.filter(h=>isDone(h,dt)).length;
+    const cl=!L.length?'':n==L.length?'full':n?'part':k<key(t)?'miss':'';c+=`<button class="day ${cl} ${k===SEL?'sel':''} ${k===key(t)?'now':''}" onclick="selDay('${k}')" aria-label="${k}">${d}</button>`}
+  const sd=new Date(SEL+'T00:00:00'),sl=S.habits.filter(h=>sched(h,sd));
+  const det=sl.length?sl.map(h=>isDone(h,sd)?`<p>✅ ${esc(h.name)} <small class="sub">· ${tm(S.done[h.id][SEL])}</small></p>`:`<p>${SEL<key(t)?'❌':'⬜'} ${esc(h.name)} <small class="sub">· ${SEL<key(t)?'Missed':'Not done yet'}</small></p>`).join(''):'<p class="sub">No habits were scheduled on this day.</p>';
+  const act=S.habits.filter(h=>!h.paused);
+  return`<div class="card"><div class="mh"><button onclick="shift(-1)" aria-label="Previous month">‹</button><h2>${b.toLocaleString([],{month:'long',year:'numeric'})}</h2><button onclick="shift(1)" ${M>=0?'disabled':''} aria-label="Next month">›</button></div>
+  <div class="cal">${DN.map(x=>`<span>${x[0]}</span>`).join('')}${c}</div></div>
+  <div class="card dl"><h2>${sd.toLocaleDateString([],{weekday:'long',month:'short',day:'numeric'})}</h2>${det}</div>
+  <div class="stats" style="margin:0 0 14px"><div class="stat"><b>${rate(S.habits,7)}%</b><small>This week</small></div><div class="stat"><b>${rate(S.habits,30)}%</b><small>Last 30 days</small></div><div class="stat"><b>${Object.values(S.done).reduce((a,o)=>a+Object.keys(o).length,0)}</b><small>Total check-ins</small></div></div>
+  <h3>Habit consistency</h3><div class="card">${act.length?act.map(h=>{const s=streaks(h),r=rate([h],30);return`<div class="hs"><div><span>${esc(h.name)}</span><span>${r}%</span></div><div class="bar"><i style="width:${r}%"></i></div><small>🔥 ${s.cur} now · Best ${s.best}</small></div>`}).join(''):'<p class="sub">Your habit stats will show up here.</p>'}</div>`}
+function render(){document.querySelector('nav').style.display=U?'flex':'none';$('#out').hidden=!U;if(!U){$('#app').innerHTML=authV();return}$('#app').innerHTML=V==='today'?todayV():histV();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===V))}
+function go(v){V=v;render();scrollTo(0,0)}
+function shift(n){M=Math.min(0,M+n);render()}
+function selDay(k){SEL=k;render()}
+function edit(id){const h=id&&S.habits.find(x=>x.id===id);E=h?{id:h.id,name:h.name,days:[...h.days],paused:!!h.paused,del:0}:{id:null,name:'',days:[0,1,2,3,4,5,6],paused:false,del:0};drawM()}
+function drawM(){$('#modal').innerHTML=`<div class="ov" onclick="if(event.target===this)closeM()"><div class="sheet"><h2>${E.id?'Edit habit':'New habit'}</h2>
+<label for="nm">Habit name</label><input type="text" id="nm" maxlength="60" placeholder="e.g. Read 10 pages" value="${esc(E.name)}" oninput="E.name=this.value">
+<label>How often?</label><div class="pre"><button onclick="pre(7)">Daily</button><button onclick="pre(5)">Weekdays</button><button onclick="pre(2)">Weekends</button></div>
+<div class="chips">${DN.map((n,i)=>`<button class="chip ${E.days.includes(i)?'on':''}" onclick="tg(${i})">${n}</button>`).join('')}</div>
+${E.id?`<div class="row"><span>Pause this habit</span><button class="sw ${E.paused?'on':''}" onclick="E.paused=!E.paused;this.classList.toggle('on')" aria-label="Pause habit"></button></div>`:''}
+<p id="err" class="err"></p><button class="btn" onclick="saveH()">Save habit</button>
+${E.id?'<button class="btn ghost danger" onclick="delH(this)">Delete habit</button>':''}
+<button class="btn ghost" onclick="closeM()">Cancel</button></div></div>`;if(!E.id)setTimeout(()=>{const n=$('#nm');n&&n.focus()},60)}
+function pre(n){E.days=n==7?[0,1,2,3,4,5,6]:n==5?[1,2,3,4,5]:[0,6];drawM()}
+function tg(i){E.days=E.days.includes(i)?E.days.filter(x=>x!==i):[...E.days,i];drawM()}
+function closeM(){$('#modal').innerHTML='';E=null}
+function saveH(){const n=E.name.trim(),er=m=>{$('#err').textContent=m};if(!n)return er('Give your habit a name.');if(!E.days.length)return er('Pick at least one day.');
+  const days=[...E.days].sort();
+  if(E.id)Object.assign(S.habits.find(x=>x.id===E.id),{name:n,days,paused:E.paused});else S.habits.push({id:'h'+Date.now().toString(36),name:n,days,paused:false,created:key(new Date())});
+  save();closeM();render();toast('Habit saved')}
+function delH(b){if(!E.del){E.del=1;b.textContent='Tap again to delete for good';return}S.habits=S.habits.filter(x=>x.id!==E.id);delete S.done[E.id];save();closeM();render();toast('Habit deleted')}
+function authV(){const up=AM==='up';return`<div class="card"><h2>${up?'Create your account':'Welcome back'}</h2><p class="sub">${up?'Your habits stay private to you.':'Sign in to see your habits.'}</p>
+${up?'<label for="an">Your name</label><input type="text" id="an" autocomplete="name">':''}
+<label for="ae">Email</label><input type="text" id="ae" inputmode="email" autocomplete="email" autocapitalize="none">
+<label for="ap">Password</label><input type="password" id="ap" autocomplete="${up?'new-password':'current-password'}">
+<p class="err" id="aerr"></p><button class="btn" id="ab" onclick="authGo()">${up?'Create account':'Sign in'}</button>
+<button class="btn ghost" onclick="AM='${up?'in':'up'}';render()">${up?'I already have an account':'Create a new account'}</button>
+${up?'':'<button class="btn ghost" onclick="reset()">Forgot password?</button>'}</div>`}
+const aerr=m=>{$('#aerr').textContent=m};
+function amsg(c){return({'auth/invalid-email':'That email doesn’t look right.','auth/email-already-in-use':'That email already has an account. Try signing in.','auth/weak-password':'Use at least 6 characters.','auth/invalid-credential':'Email or password is incorrect.','auth/user-not-found':'Email or password is incorrect.','auth/wrong-password':'Email or password is incorrect.','auth/network-request-failed':'No internet connection. Try again.','auth/too-many-requests':'Too many tries. Wait a moment and try again.'})[c]||'Something went wrong. Try again.'}
+async function authGo(){const e=$('#ae').value.trim(),p=$('#ap').value,up=AM==='up',b=$('#ab');if(!e||!p)return aerr('Enter your email and password.');b.disabled=true;
+  try{if(up){const n=$('#an').value.trim(),c=await firebase.auth().createUserWithEmailAndPassword(e,p);if(n){await c.user.updateProfile({displayName:n});render()}}else await firebase.auth().signInWithEmailAndPassword(e,p)}catch(x){aerr(amsg(x.code));b.disabled=false}}
+function reset(){const e=$('#ae').value.trim();if(!e)return aerr('Type your email first.');firebase.auth().sendPasswordResetEmail(e).then(()=>toast('Reset link sent. Check your email.')).catch(x=>aerr(amsg(x.code)))}
+function out(){firebase.auth().signOut()}
+function boot(){
+  if(firebaseConfig.apiKey.startsWith('PASTE')){$('#app').innerHTML='<div class="card"><h2>Connect Firebase</h2><p class="sub">Open index.html and paste your Firebase keys into firebaseConfig, near the top of the script.</p></div>';return}
+  firebase.initializeApp(firebaseConfig);db=firebase.firestore();db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  firebase.auth().onAuthStateChanged(u=>{if(unsub){unsub();unsub=null}U=u;if(!u){S={habits:[],done:{}};render();return}
+    const c=loadL(u.uid);if(c)S=c;render();
+    unsub=db.doc('users/'+u.uid).onSnapshot(s=>{if(s.metadata.hasPendingWrites)return;if(s.exists){const d=s.data();S={habits:d.habits||[],done:d.done||{}};render()}},()=>toast('Offline. Showing your saved data.'))})
+}
+boot();
+</script>
+</body>
+</html>
