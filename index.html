@@ -91,6 +91,8 @@ input[type=text],input[type=password],input[type=time]{width:100%;padding:14px;b
 .sw.on{background:var(--acc)}
 .sw.on::after{transform:translateX(22px)}
 .err{color:var(--bad);font-weight:700;font-size:14px;min-height:20px;margin:10px 0 0}
+.tip{background:var(--acc2);padding:14px 18px}.tip p{margin:6px 0 8px}
+.bg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.bd{background:var(--card);border-radius:18px;box-shadow:var(--sh);padding:14px 10px;text-align:center;opacity:.55;filter:grayscale(1)}.bd.on{opacity:1;filter:none;background:var(--acc2)}.bd span{font-size:30px;display:block}.bd b{display:block;font-size:14px;margin:2px 0}.bd small{color:var(--mute);font-size:12px}
 #toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:30}
 #toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -119,9 +121,10 @@ const sched=(h,d)=>!h.paused&&h.days.includes(d.getDay())&&key(d)>=h.created;
 const isDone=(h,d)=>!!(S.done[h.id]&&S.done[h.id][key(d)]);
 function freq(h){const n=h.days.length;if(n===7)return'Daily';if(n===5&&!h.days.includes(0)&&!h.days.includes(6))return'Weekdays';if(n===2&&h.days.includes(0)&&h.days.includes(6))return'Weekends';return h.days.map(x=>DN[x]).join(', ')}
 function streaks(h){let run=0,best=0;const t=new Date();for(let d=new Date(h.created+'T00:00:00');key(d)<=key(t);d.setDate(d.getDate()+1)){if(!h.days.includes(d.getDay()))continue;if(isDone(h,d)){run++;best=Math.max(best,run)}else if(key(d)!==key(t))run=0}return{cur:run,best}}
-function rate(hs,days){let a=0,b=0;const t=new Date();for(let i=0;i<days;i++){const d=new Date(t);d.setDate(t.getDate()-i);hs.forEach(h=>{if(sched(h,d)){a++;if(isDone(h,d))b++}})}return a?Math.round(b/a*100):0}
+function rateR(hs,f,to){let a=0,b=0;const t=new Date();for(let i=f;i<to;i++){const d=new Date(t);d.setDate(t.getDate()-i);hs.forEach(h=>{if(sched(h,d)){a++;if(isDone(h,d))b++}})}return a?Math.round(b/a*100):null}
+const rate=(hs,days)=>rateR(hs,0,days)||0;
 function toast(m){const e=$('#toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),1800)}
-function toggle(id){const k=key(new Date());S.done[id]=S.done[id]||{};if(S.done[id][k])delete S.done[id][k];else S.done[id][k]=new Date().toISOString();save();render()}
+function toggle(id){const k=key(new Date()),b4=earned();S.done[id]=S.done[id]||{};if(S.done[id][k])delete S.done[id][k];else S.done[id][k]=new Date().toISOString();save();render();const nw=earned().filter(x=>!b4.includes(x));if(nw.length)toast('🏅 Badge unlocked: '+nw[0])}
 const card=(h,t)=>{const s=streaks(h),d=isDone(h,t),on=sched(h,t);return`<div class="hc ${d?'done':''} ${on?'':'off'}"><button class="chk" ${on?'':'disabled'} onclick="toggle('${h.id}')" aria-label="${d?'Undo':'Mark'} ${esc(h.name)}">${d?'✓':''}</button><div class="hi" onclick="edit('${h.id}')"><b>${esc(h.name)}</b><small>${freq(h)}${h.rem?' · ⏰ '+h.rem:''}${h.paused?' · Paused':''} · 🔥 ${s.cur} day${s.cur==1?'':'s'}${d?' · Done '+tm(S.done[h.id][key(t)]):''}</small></div><button class="ed" onclick="edit('${h.id}')" aria-label="Edit ${esc(h.name)}">⋯</button></div>`};
 function todayV(){
   const t=new Date(),L=S.habits.filter(h=>sched(h,t)),n=L.filter(h=>isDone(h,t)).length,p=L.length?Math.round(n/L.length*100):0,hr=t.getHours();
@@ -133,6 +136,7 @@ function todayV(){
   <div class="prog"><div class="ring"><svg width="132" height="132" viewBox="0 0 132 132"><circle class="tr" cx="66" cy="66" r="54"/><circle class="pg" cx="66" cy="66" r="54" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p/100)}"/></svg><span>${p}%</span></div>
   <div class="msg"><b>Today’s progress</b>${n} of ${L.length} habit${L.length==1?'':'s'} done.<br>${line}</div></div>
   <div class="stats"><div class="stat"><b>${S.habits.filter(h=>!h.paused).length}</b><small>Active habits</small></div><div class="stat"><b>${best}</b><small>Longest streak</small></div><div class="stat"><b>${rate(S.habits,7)}%</b><small>Last 7 days</small></div></div></div>
+  <div class="card tip"><small class="sub">💡 Today’s tip</small><p class="msg">${TIPS[Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/864e5)%TIPS.length]}</p><small class="sub">Inspired by ideas from Atomic Habits</small></div>
   <h3>My habits</h3>
   ${L.length?L.map(h=>card(h,t)).join(''):S.habits.length?'<div class="card empty"><p class="sub">Nothing scheduled for today. Enjoy the rest.</p></div>':'<div class="card empty"><div class="big">🌱</div><h2>Start your first habit</h2><p class="sub">Small steps, repeated daily, add up.</p></div>'}
   <button class="btn" onclick="edit()">+ Add new habit</button>
@@ -145,11 +149,11 @@ function histV(){
   const sd=new Date(SEL+'T00:00:00'),sl=S.habits.filter(h=>sched(h,sd));
   const det=sl.length?sl.map(h=>isDone(h,sd)?`<p>✅ ${esc(h.name)} <small class="sub">· ${tm(S.done[h.id][SEL])}</small></p>`:`<p>${SEL<key(t)?'❌':'⬜'} ${esc(h.name)} <small class="sub">· ${SEL<key(t)?'Missed':'Not done yet'}</small></p>`).join(''):'<p class="sub">No habits were scheduled on this day.</p>';
   const act=S.habits.filter(h=>!h.paused);
-  return`<div class="card"><div class="mh"><button onclick="shift(-1)" aria-label="Previous month">‹</button><h2>${b.toLocaleString([],{month:'long',year:'numeric'})}</h2><button onclick="shift(1)" ${M>=0?'disabled':''} aria-label="Next month">›</button></div>
+  return`${weekV()}<div class="card"><div class="mh"><button onclick="shift(-1)" aria-label="Previous month">‹</button><h2>${b.toLocaleString([],{month:'long',year:'numeric'})}</h2><button onclick="shift(1)" ${M>=0?'disabled':''} aria-label="Next month">›</button></div>
   <div class="cal">${DN.map(x=>`<span>${x[0]}</span>`).join('')}${c}</div></div>
   <div class="card dl"><h2>${sd.toLocaleDateString([],{weekday:'long',month:'short',day:'numeric'})}</h2>${det}</div>
   <div class="stats" style="margin:0 0 14px"><div class="stat"><b>${rate(S.habits,7)}%</b><small>This week</small></div><div class="stat"><b>${rate(S.habits,30)}%</b><small>Last 30 days</small></div><div class="stat"><b>${Object.values(S.done).reduce((a,o)=>a+Object.keys(o).length,0)}</b><small>Total check-ins</small></div></div>
-  <h3>Habit consistency</h3><div class="card">${act.length?act.map(h=>{const s=streaks(h),r=rate([h],30);return`<div class="hs"><div><span>${esc(h.name)}</span><span>${r}%</span></div><div class="bar"><i style="width:${r}%"></i></div><small>🔥 ${s.cur} now · Best ${s.best}</small></div>`}).join(''):'<p class="sub">Your habit stats will show up here.</p>'}</div>`}
+  <h3>Habit consistency</h3><div class="card">${act.length?act.map(h=>{const s=streaks(h),r=rate([h],30);return`<div class="hs"><div><span>${esc(h.name)}</span><span>${r}%</span></div><div class="bar"><i style="width:${r}%"></i></div><small>🔥 ${s.cur} now · Best ${s.best}</small></div>`}).join(''):'<p class="sub">Your habit stats will show up here.</p>'}</div>${badgesV()}`}
 function render(){document.querySelector('nav').style.display=U?'flex':'none';$('#out').hidden=!U;if(!U){$('#app').innerHTML=authV();return}$('#app').innerHTML=V==='today'?todayV():histV();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===V))}
 function go(v){V=v;render();scrollTo(0,0)}
 function shift(n){M=Math.min(0,M+n);render()}
@@ -173,6 +177,21 @@ function saveH(){const n=E.name.trim(),er=m=>{$('#err').textContent=m};if(!n)ret
   if(E.id)Object.assign(S.habits.find(x=>x.id===E.id),{name:n,days,paused:E.paused,rem:E.rem||''});else S.habits.push({id:'h'+Date.now().toString(36),name:n,days,paused:false,rem:E.rem||'',created:key(new Date())});
   save();closeM();render();toast('Habit saved')}
 function delH(b){if(!E.del){E.del=1;b.textContent='Tap again to delete for good';return}S.habits=S.habits.filter(x=>x.id!==E.id);delete S.done[E.id];save();closeM();render();toast('Habit deleted')}
+const TIPS=["Start tiny. If a habit feels heavy, shrink it to two minutes and simply show up.","Link a new habit to one you already do. After your morning tea, read one page.","Make it easy to see. Leave your book or running shoes where you will notice them.","Pair a habit you need with something you enjoy, like a favourite song while you study.","Decide the time and place ahead of time, so you never have to wonder when to start.","Think about the person you want to become. Every check-in is a small piece of proof.","Missing one day is normal. Just make sure the next day is a good one.","Celebrate right after you finish, even with a smile. Feeling good helps the habit stick.","Remove friction. Lay out your clothes or open your notes the night before.","Make bad habits harder. Put your phone in another room while you study.","Seeing your streak grow is powerful. Protect it with a tiny version on busy days.","Small gains add up. Getting one percent better each day compounds over months.","Showing up matters more than being perfect. Consistency beats intensity.","Pick habits that fit your real day. If it needs a perfect morning, it will not last.","Be specific. “Walk ten minutes at 6 pm” works better than “exercise more”.","Change your surroundings. A tidy desk makes studying the easy choice.","Spend time with people who already do the habit you want.","When motivation fades, lean on your routine instead of your mood.","Start before you feel ready. The first two minutes are the hardest.","Look at the trend, not one bad day. Progress is the pattern.","Make it satisfying. Tick the box and enjoy the little win.","Do the hard thing early, while the day is still on your side.","Master the small things first. Big goals grow from them.","Review your week. What worked, what felt hard, what should be smaller?","Prepare for bad days. Keep a tiny version of every habit ready.","Be patient. Progress can stay invisible for weeks, then suddenly show."];
+const BADGES=[["🌱","First step","Complete a habit once",s=>s.n>=1],["🔥","3-day streak","3 days in a row on one habit",s=>s.best>=3],["⚡","7-day streak","7 days in a row on one habit",s=>s.best>=7],["🏆","14-day streak","Two weeks strong",s=>s.best>=14],["👑","30-day streak","A full month of consistency",s=>s.best>=30],["🧱","Habit builder","Have 3 active habits",s=>s.act>=3],["✅","10 check-ins","Finish habits 10 times",s=>s.n>=10],["💪","50 check-ins","Finish habits 50 times",s=>s.n>=50],["💯","100 check-ins","Finish habits 100 times",s=>s.n>=100],["🌟","Perfect day","Finish every habit on a day with 2 or more",s=>s.perf]];
+function bstats(){let n=0,best=0,perf=false;const t=new Date();S.habits.forEach(h=>{best=Math.max(best,streaks(h).best);n+=Object.keys(S.done[h.id]||{}).length});
+  const mc=S.habits.reduce((m,h)=>h.created<m?h.created:m,key(t));
+  for(let d=new Date(mc+'T00:00:00');key(d)<=key(t)&&!perf;d.setDate(d.getDate()+1)){const L=S.habits.filter(h=>sched(h,d));if(L.length>=2&&L.every(h=>isDone(h,d)))perf=true}
+  return{n,best,perf,act:S.habits.filter(h=>!h.paused).length}}
+const earned=()=>{const s=bstats();return BADGES.filter(b=>b[3](s)).map(b=>b[1])};
+function badgesV(){const e=earned();return`<h3>Badges · ${e.length}/${BADGES.length}</h3><div class="bg">${BADGES.map(b=>{const on=e.includes(b[1]);return`<div class="bd ${on?'on':''}"><span>${b[0]}</span><b>${b[1]}</b><small>${on?b[2]:'Locked · '+b[2]}</small></div>`}).join('')}</div>`}
+function weekV(){const t=new Date();let tot=0;const days=[0,0,0,0,0,0,0],per={};
+  for(let i=0;i<7;i++){const d=new Date(t);d.setDate(t.getDate()-i);S.habits.forEach(h=>{if(sched(h,d)){per[h.id]=per[h.id]||[0,0];per[h.id][1]++;if(isDone(h,d)){per[h.id][0]++;tot++;days[d.getDay()]++}}})}
+  const a=rateR(S.habits,0,7),b=rateR(S.habits,7,14),df=a!==null&&b!==null?(a-b>0?'+':'')+(a-b)+'%':'—';
+  let bh=null,br=-1;S.habits.forEach(h=>{const p=per[h.id];if(p&&p[1]&&p[0]/p[1]>br){br=p[0]/p[1];bh=h}});
+  const mx=Math.max(...days);
+  return`<div class="card"><h2>Your week</h2><p class="sub">The last 7 days</p><div class="stats"><div class="stat"><b>${a||0}%</b><small>Completion</small></div><div class="stat"><b>${tot}</b><small>Check-ins</small></div><div class="stat"><b>${df}</b><small>vs last week</small></div></div>
+  <p class="msg" style="margin:14px 0 0">${tot?`Best habit: <b style="display:inline">${esc(bh.name)}</b> (${Math.round(br*100)}%). Strongest day: ${DN[days.indexOf(mx)]}.`:'Complete a habit and your weekly report will fill in.'}</p></div>`}
 function authV(){const up=AM==='up';return`<div class="card"><h2>${up?'Create your account':'Welcome back'}</h2><p class="sub">${up?'Your habits stay private to you.':'Sign in to see your habits.'}</p>
 ${up?'<label for="an">Your name</label><input type="text" id="an" autocomplete="name">':''}
 <label for="ae">Email</label><input type="text" id="ae" inputmode="email" autocomplete="email" autocapitalize="none">
