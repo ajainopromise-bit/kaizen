@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <style>
 :root{--bg:#e6f2fc;--card:#fff;--ink:#14233a;--mute:#66768c;--acc:#1fa357;--acc2:#e2f5ea;--line:#d6e5f3;--sh:0 6px 18px rgba(30,70,120,.09);--bad:#d6453d;--onacc:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1a2b;--card:#15263d;--ink:#eaf1fa;--mute:#93a3b8;--acc:#3ccf7a;--acc2:#183a2d;--line:#243b57;--sh:0 6px 18px rgba(0,0,0,.35);--bad:#ff7a70;--onacc:#06210f;color-scheme:dark}}
@@ -110,6 +111,7 @@ input[type=text],input[type=password],input[type=time]{width:100%;padding:14px;b
 const $=s=>document.querySelector(s);
 const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const firebaseConfig={apiKey:"AIzaSyD_36rvEXsOH5XEXJhqxxOokIjyKq1Mwa8",authDomain:"habit-tracking-6be1c.firebaseapp.com",projectId:"habit-tracking-6be1c",storageBucket:"habit-tracking-6be1c.firebasestorage.app",messagingSenderId:"221005274545",appId:"1:221005274545:web:4134129bee4aa601c53190"};
+const VAPID="BNCmDQiRzjPdFAFvm3yCnTbiqraTcWZcsZlxQQUTavq8lHXKS0pK5kb9-rDxTMbOdmrK1yjIWUE885uO-u3qVCw";
 let S={habits:[],done:{}},V='today',M=0,E=null,tt,U=null,db,unsub,st,AM='in';
 const loadL=u=>{try{const r=localStorage.getItem('kaizen_'+u);return r?JSON.parse(r):null}catch(e){return null}};
 const save=()=>{if(!U)return;try{localStorage.setItem('kaizen_'+U.uid,JSON.stringify(S))}catch(e){}clearTimeout(st);st=setTimeout(()=>db.doc('users/'+U.uid).set({habits:S.habits,done:S.done,updated:Date.now()}).catch(()=>toast('Could not sync. Your changes are kept on this device.')),400)};
@@ -204,17 +206,18 @@ function amsg(c){return({'auth/invalid-email':'That email doesn’t look right.'
 async function authGo(){const e=$('#ae').value.trim(),p=$('#ap').value,up=AM==='up',b=$('#ab');if(!e||!p)return aerr('Enter your email and password.');b.disabled=true;
   try{if(up){const n=$('#an').value.trim(),c=await firebase.auth().createUserWithEmailAndPassword(e,p);if(n){await c.user.updateProfile({displayName:n});render()}}else await firebase.auth().signInWithEmailAndPassword(e,p)}catch(x){aerr(amsg(x.code));b.disabled=false}}
 function reset(){const e=$('#ae').value.trim();if(!e)return aerr('Type your email first.');firebase.auth().sendPasswordResetEmail(e).then(()=>toast('Reset link sent. Check your email.')).catch(x=>aerr(amsg(x.code)))}
-function out(){firebase.auth().signOut()}
+async function out(){try{if(U&&'Notification' in window&&Notification.permission==='granted'&&firebase.messaging.isSupported()){const m=firebase.messaging(),reg=await navigator.serviceWorker.ready,t=await m.getToken({vapidKey:VAPID,serviceWorkerRegistration:reg});await db.doc('users/'+U.uid+'/meta/push').set({tokens:firebase.firestore.FieldValue.arrayRemove(t)},{merge:true});await m.deleteToken()}}catch(e){}firebase.auth().signOut()}
+async function setupPush(){try{if(!U||!('Notification' in window)||Notification.permission!=='granted'||!('serviceWorker' in navigator)||!firebase.messaging.isSupported())return;const reg=await navigator.serviceWorker.ready,tok=await firebase.messaging().getToken({vapidKey:VAPID,serviceWorkerRegistration:reg});if(tok)await db.doc('users/'+U.uid+'/meta/push').set({tokens:firebase.firestore.FieldValue.arrayUnion(tok),tz:Intl.DateTimeFormat().resolvedOptions().timeZone,updated:Date.now()},{merge:true})}catch(e){console.warn('push setup',e)}}
 function boot(){
   if(firebaseConfig.apiKey.startsWith('PASTE')){$('#app').innerHTML='<div class="card"><h2>Connect Firebase</h2><p class="sub">Open index.html and paste your Firebase keys into firebaseConfig, near the top of the script.</p></div>';return}
   firebase.initializeApp(firebaseConfig);db=firebase.firestore();db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
   firebase.auth().onAuthStateChanged(u=>{if(unsub){unsub();unsub=null}U=u;if(!u){S={habits:[],done:{}};render();return}
-    const c=loadL(u.uid);if(c)S=c;render();
+    const c=loadL(u.uid);if(c)S=c;render();setupPush();
     unsub=db.doc('users/'+u.uid).onSnapshot(s=>{if(s.metadata.hasPendingWrites)return;if(s.exists){const d=s.data();S={habits:d.habits||[],done:d.done||{}};render()}},()=>toast('Offline. Showing your saved data.'))})
 }
-async function togRem(b){const on=!E.rem;if(on){E.rem=($('#rtm')||{}).value||'08:00';if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();if(!('Notification' in window)||Notification.permission!=='granted')$('#err').textContent='Notifications are off for this site. Allow them in your browser settings to get reminders.'}else{E.rem='';$('#err').textContent=''}b.classList.toggle('on',on);$('#rt').hidden=!on}
+async function togRem(b){const on=!E.rem;if(on){E.rem=($('#rtm')||{}).value||'08:00';if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();if(!('Notification' in window)||Notification.permission!=='granted')$('#err').textContent='Notifications are off for this site. Allow them in your browser settings to get reminders.';else setupPush()}else{E.rem='';$('#err').textContent=''}b.classList.toggle('on',on);$('#rt').hidden=!on}
 let notified={};try{notified=JSON.parse(localStorage.getItem('kaizen_notified')||'{}')}catch(e){}
-async function notify(h){const o={body:'Time for your habit. Small steps count.',tag:h.id};try{const r=await navigator.serviceWorker.ready;await r.showNotification('KAIZEN · '+h.name,o)}catch(e){try{new Notification('KAIZEN · '+h.name,o)}catch(x){}}}
+async function notify(h){const o={body:'Time for your habit. Small steps count.',tag:'kz-'+h.id+'-'+key(new Date())};try{const r=await navigator.serviceWorker.ready;await r.showNotification('KAIZEN · '+h.name,o)}catch(e){try{new Notification('KAIZEN · '+h.name,o)}catch(x){}}}
 function checkRem(){if(!U||!('Notification' in window)||Notification.permission!=='granted')return;const t=new Date(),k=key(t),m=t.getHours()*60+t.getMinutes();
   S.habits.forEach(h=>{if(!h.rem||!sched(h,t)||isDone(h,t)||notified[h.id]===k)return;const[a,b]=h.rem.split(':'),rm=Number(a)*60+Number(b);
     if(m>=rm&&m<rm+90){notified[h.id]=k;try{localStorage.setItem('kaizen_notified',JSON.stringify(notified))}catch(e){}notify(h)}})}
